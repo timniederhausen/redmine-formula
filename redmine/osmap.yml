@@ -1,0 +1,10 @@
+FreeBSD:
+  service: redmine
+  packages:
+    - subversion
+    - rubygem-bundler
+
+Debian:
+  service: redmine
+  packages:
+    - subversion
