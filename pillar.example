@@ -1,10 +1,13 @@
 redmine:
+  # Redmine installation directory.
+  directory: /home/redmine/redmine
+  # URL of the branch/tag to checkout.
   svn_url: https://svn.redmine.org/redmine/branches/3.3-stable
-  root_directory: /home/redmine/redmine
   user: redmine
   group: redmine
   use_unicorn: true
   config:
+    # These dictionaries are written to the respective config/*.yml file:
     configuration:
       default:
           email_delivery:

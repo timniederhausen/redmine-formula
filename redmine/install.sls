@@ -1,7 +1,7 @@
 {% from 'redmine/map.jinja' import redmine with context %}
 
 {% for pkg in redmine.packages %}
-pkg_{{ pkg }}:
+redmine_pkg_{{ pkg }}:
   pkg.installed:
     - name: {{ pkg }}
 {% endfor %}
@@ -16,7 +16,7 @@ redmine_group:
 
 redmine_directory:
   file.directory:
-    - name: {{ redmine.root_directory }}
+    - name: {{ redmine.directory }}
     - user: {{ redmine.user }}
     - group: {{ redmine.group }}
     - makedirs: true
@@ -24,7 +24,7 @@ redmine_directory:
 redmine_checkout:
   svn.latest:
     - name: {{ redmine.svn_url }}
-    - target: {{ redmine.root_directory }}
+    - target: {{ redmine.directory }}
     - force: true
     - user: {{ redmine.user }}
     - trust: true
@@ -32,7 +32,7 @@ redmine_checkout:
 {% for cfg in ['configuration', 'database'] %}
 redmine_config_{{ cfg }}:
   file.managed:
-    - name: {{ redmine.root_directory }}/config/{{ cfg }}.yml
+    - name: {{ redmine.directory }}/config/{{ cfg }}.yml
     - source: salt://redmine/files/config.yml
     - template: jinja
     - user: {{ redmine.user }}
@@ -44,7 +44,7 @@ redmine_config_{{ cfg }}:
 
 redmine_local_gemfile:
   file.managed:
-    - name: {{ redmine.root_directory }}/Gemfile.local
+    - name: {{ redmine.directory }}/Gemfile.local
     - source: salt://redmine/files/Gemfile.local
     - user: {{ redmine.user }}
     - group: {{ redmine.group }}
@@ -53,18 +53,18 @@ redmine_bundle_install:
   cmd.run:
     - name: bundle install --path vendor/bundle --without development test rmagick
     - runas: {{ redmine.user }}
-    - cwd: {{ redmine.root_directory }}
-    - creates: {{ redmine.root_directory }}/Gemfile.lock
+    - cwd: {{ redmine.directory }}
+    - creates: {{ redmine.directory }}/Gemfile.lock
 
 redmine_bundle_update:
   cmd.run:
     - name: bundle update
     - runas: {{ redmine.user }}
-    - cwd: {{ redmine.root_directory }}
+    - cwd: {{ redmine.directory }}
 
 redmine_web_sh:
   file.managed:
-    - name: {{ redmine.root_directory }}/bin/web
+    - name: {{ redmine.directory }}/bin/web
     - source: salt://redmine/files/web.sh
     - user: {{ redmine.user }}
     - group: {{ redmine.group }}
@@ -74,8 +74,8 @@ redmine_secret_token:
   cmd.run:
     - name: bundle exec rake generate_secret_token
     - runas: {{ redmine.user }}
-    - cwd: {{ redmine.root_directory }}
-    - creates: {{ redmine.root_directory }}/config/initializers/secret_token.rb
+    - cwd: {{ redmine.directory }}
+    - creates: {{ redmine.directory }}/config/initializers/secret_token.rb
     - env:
       - RAILS_ENV: production
 
@@ -83,7 +83,7 @@ redmine_migrate_db:
   cmd.run:
     - name: bundle exec rake db:migrate
     - runas: {{ redmine.user }}
-    - cwd: {{ redmine.root_directory }}
+    - cwd: {{ redmine.directory }}
     - env:
       - RAILS_ENV: production
 
@@ -91,8 +91,7 @@ redmine_default_data:
   cmd.run:
     - name: bundle exec rake redmine:load_default_data
     - runas: {{ redmine.user }}
-    - cwd: {{ redmine.root_directory }}
+    - cwd: {{ redmine.directory }}
     - env:
       - RAILS_ENV: production
       - REDMINE_LANG: en
-

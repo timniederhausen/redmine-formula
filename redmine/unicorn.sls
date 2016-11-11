@@ -2,7 +2,7 @@
 
 redmine_unicorn_script:
   file.managed:
-    - name: {{ redmine.root_directory }}/config/unicorn.rb
+    - name: {{ redmine.directory }}/config/unicorn.rb
     - source: salt://redmine/files/unicorn.rb
     - template: jinja
     - user: {{ redmine.user }}

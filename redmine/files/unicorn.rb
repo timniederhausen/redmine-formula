@@ -25,12 +25,12 @@ worker_processes 3
 
 # Help ensure your application will always spawn in the symlinked
 # "current" directory that Capistrano sets up.
-working_directory "{{ redmine.root_directory }}" # available in 0.94.0+
+working_directory "{{ redmine.directory }}" # available in 0.94.0+
 
 # Listen on both a Unix domain socket and a TCP port.
 # If you are load-balancing multiple Unicorn masters, lower the backlog
 # setting to e.g. 64 for faster failover.
-listen "{{ redmine.root_directory }}/tmp/sockets/redmine.socket", :backlog => 1024
+listen "{{ redmine.directory }}/tmp/sockets/redmine.socket", :backlog => 1024
 #listen "127.0.0.1:8081", :tcp_nopush => true
 
 # nuke workers after 30 seconds instead of 60 seconds (the default)
@@ -51,13 +51,13 @@ listen "{{ redmine.root_directory }}/tmp/sockets/redmine.socket", :backlog => 10
 timeout 60
 
 # feel free to point this anywhere accessible on the filesystem
-pid "{{ redmine.root_directory }}/tmp/pids/unicorn.pid"
+pid "{{ redmine.directory }}/tmp/pids/unicorn.pid"
 
 # By default, the Unicorn logger will write to stderr.
 # Additionally, some applications/frameworks log to stderr or stdout,
 # so prevent them from going to /dev/null when daemonized here:
-stderr_path "{{ redmine.root_directory }}/log/unicorn.stderr.log"
-stdout_path "{{ redmine.root_directory }}/log/unicorn.stdout.log"
+stderr_path "{{ redmine.directory }}/log/unicorn.stderr.log"
+stdout_path "{{ redmine.directory }}/log/unicorn.stdout.log"
 
 # combine Ruby 2.0.0dev or REE with "preload_app true" for memory savings
 # http://rubyenterpriseedition.com/faq.html#adapt_apps_for_cow

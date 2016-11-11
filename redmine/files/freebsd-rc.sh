@@ -18,7 +18,7 @@ extra_commands="status"
 load_rc_config {{ redmine_name }}
 : ${{ '{' }}{{ redmine_name }}_enable:="NO"}
 
-required_dirs="{{ redmine.root_directory }}"
+required_dirs="{{ redmine.directory }}"
 
 start_cmd="start_redmine"
 stop_cmd="stop_redmine"
@@ -31,7 +31,7 @@ RAILS_ENV="production"
 # Script variable names should be lower-case not to conflict with
 # internal /bin/sh variables such as PATH, EDITOR or SHELL.
 app_user="{{ redmine.user }}"
-app_root="{{ redmine.root_directory }}"
+app_root="{{ redmine.directory }}"
 pid_path="$app_root/tmp/pids"
 socket_path="$app_root/tmp/sockets"
 web_server_pid_path="$pid_path/unicorn.pid"
