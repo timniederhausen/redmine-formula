@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-# vim: ft=jinja
-
-{% import_yaml 'redmine/defaults.yml' as defaults %}
-{% import_yaml 'redmine/osmap.yml' as osmap %}
+{% import_yaml 'redmine/defaults.yaml' as defaults %}
+{% import_yaml 'redmine/osmap.yaml' as osmap %}
 
 {# get the settings for the os_family grain #}
 {% set osfam = salt['grains.filter_by'](osmap) or {} %}
