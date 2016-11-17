@@ -1,6 +1,6 @@
 redmine:
   directory: /home/redmine/redmine
-  svn_url: https://svn.redmine.org/redmine/branches/3.3-stable
+  svn_url: http://svn.redmine.org/redmine/branches/3.3-stable
   user: redmine
   group: redmine
   use_unicorn: true
