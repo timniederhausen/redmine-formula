@@ -62,6 +62,10 @@ redmine_bundle_update:
     - name: bundle update
     - runas: {{ redmine.user }}
     - cwd: {{ redmine.directory }}
+    - onchanges:
+      - svn: redmine_checkout
+      - file: redmine_local_gemfile
+      - file: redmine_config_database
 
 redmine_web_sh:
   file.managed:
@@ -87,6 +91,9 @@ redmine_migrate_db:
     - cwd: {{ redmine.directory }}
     - env:
       - RAILS_ENV: production
+    - onchanges:
+      - svn: redmine_checkout
+      - file: redmine_config_database
 
 redmine_default_data:
   cmd.run:
@@ -96,3 +103,6 @@ redmine_default_data:
     - env:
       - RAILS_ENV: production
       - REDMINE_LANG: en
+    - onchanges:
+      - cmd: redmine_migrate_db
+      - file: redmine_config_database
