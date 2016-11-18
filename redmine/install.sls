@@ -25,6 +25,7 @@ redmine_checkout:
   svn.latest:
     - name: {{ redmine.svn_url }}
     - target: {{ redmine.directory }}
+    - rev: {{ redmine.svn_rev }}
     - force: true
     - user: {{ redmine.user }}
     - trust: true
