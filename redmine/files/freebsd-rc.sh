@@ -189,6 +189,7 @@ print_status() {
   else
       printf "The Redmine Unicorn web server is \033[31mnot running\033[0m.\n"
   fi
+  exit $redmine_status
 }
 
 ## Tells unicorn to reload it's config and Sidekiq to restart
