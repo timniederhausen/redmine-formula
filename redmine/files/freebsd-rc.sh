@@ -23,7 +23,7 @@ required_dirs="{{ redmine.directory }}"
 start_cmd="start_redmine"
 stop_cmd="stop_redmine"
 restart_cmd="restart_redmine"
-status_cmd="print_status"
+status_cmd="print_status_and_exit"
 
 ### Environment variables
 RAILS_ENV="production"
@@ -189,6 +189,10 @@ print_status() {
   else
       printf "The Redmine Unicorn web server is \033[31mnot running\033[0m.\n"
   fi
+}
+
+print_status_and_exit() {
+  print_status
   exit $redmine_status
 }
 
