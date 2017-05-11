@@ -1,0 +1,15 @@
+{%- from 'redmine/map.jinja' import redmine with context -%}
+[Unit]
+Description=Redmine Unicorn
+Wants=mysqld.service
+After=mysqld.service
+
+[Service]
+User={{ redmine.user }}
+WorkingDirectory={{ redmine.directory }}
+Environment=RAILS_ENV=production
+PIDFile={{ redmine.directory }}/tmp/pids/unicorn.pid
+ExecStart=/usr/bin/bundle exec "unicorn_rails -D -c {{ redmine.directory }}/config/unicorn.rb -E production"
+
+[Install]
+WantedBy=multi-user.target
