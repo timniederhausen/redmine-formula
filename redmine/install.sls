@@ -50,6 +50,26 @@ redmine_local_gemfile:
     - user: {{ redmine.user }}
     - group: {{ redmine.group }}
 
+{% for name, plugin in redmine.plugins.present.items() %}
+redmine_plugin_{{ name }}_dir:
+  git.latest:
+    - name: {{ plugin.git_repo }}
+    - target: {{ redmine.directory }}/plugins/{{ name }}
+    - user: {{ redmine.user }}
+    - rev: master
+    - branch: master
+    - force_reset: true
+    - force_fetch: true
+ {% if plugin.install_command is defined %}
+redmine_plugin_install:
+  cmd.run:
+    - name: {{ plugin.install_command }} && touch "{{ redmine.directory }}/plugins/{{ name }}/.installed.stamp"
+    - creates: {{ redmine.directory }}/plugins/{{ name }}/.installed.stamp
+    - cwd: {{ redmine.directory }}/plugins/{{ name }}
+    - runas: {{ redmine.user }}
+ {% endif %}
+{% endfor %}
+
 redmine_bundle_install:
   cmd.run:
     - name: bundle install --path vendor/bundle --without development test rmagick
@@ -66,6 +86,9 @@ redmine_bundle_update:
       - svn: redmine_checkout
       - file: redmine_local_gemfile
       - file: redmine_config_database
+{% for name in redmine.plugins.present.keys() %}
+      - git: redmine_plugin_{{ name }}_dir
+{% endfor %}
 
 redmine_web_sh:
   file.managed:
@@ -106,3 +129,29 @@ redmine_default_data:
     - onchanges:
       - cmd: redmine_migrate_db
       - file: redmine_config_database
+
+redmine_plugin_migrate:
+  cmd.run:
+    - name: bundle exec rake redmine:plugins:migrate RAILS_ENV=production
+    - runas: {{ redmine.user }}
+    - cwd: {{ redmine.directory }}
+    - env:
+      - RAILS_ENV: production
+    - onchanges:
+{% for name in redmine.plugins.present.keys() %}
+      - git: redmine_plugin_{{ name }}_dir
+{% endfor %}
+
+{% for name in redmine.plugins.absent %}
+redmine_plugin_{{ name }}_migrate:
+  cmd.run:
+    - name: bundle exec rake redmine:plugins:migrate NAME={{ name }} VERSION=0
+    - runas: {{ redmine.user }}
+    - cwd: {{ redmine.directory }}
+    - env:
+      - RAILS_ENV: production
+    - onlyif: 'test -e {{ redmine.directory }}/plugins/{{ name }}'
+redmine_plugin_{{ name }}_dir:
+  file.absent:
+    - name: {{ redmine.directory }}/plugins/{{ name }}
+{% endfor %}

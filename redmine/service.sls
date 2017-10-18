@@ -22,5 +22,11 @@ redmine_service:
     - enable: {{ redmine.service_enabled }}
 {% if grains.os_family in ['FreeBSD', 'Debian'] %}
     - require:
+      - cmd: redmine_default_data
       - file: redmine_service_script
 {% endif %}
+    - watch:
+      - cmd: redmine_plugin_migrate
+{% for name in redmine.plugins.absent %}
+      - cmd: redmine_plugin_{{ name }}_migrate
+{% endfor %}

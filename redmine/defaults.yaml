@@ -6,3 +6,6 @@ redmine:
   group: redmine
   use_unicorn: true
   service_enabled: true
+  plugins:
+    present: []
+    absent: []
