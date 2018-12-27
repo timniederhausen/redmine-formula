@@ -137,12 +137,11 @@ redmine_plugin_migrate:
     - cwd: {{ redmine.directory }}
     - env:
       - RAILS_ENV: production
-{% if redmine.plugins.present %}
     - onchanges:
+      - cmd: redmine_migrate_db
 {% for name in redmine.plugins.present.keys() %}
       - git: redmine_plugin_{{ name }}_dir
 {% endfor %}
-{% endif %}
 
 {% for name in redmine.plugins.absent %}
 redmine_plugin_{{ name }}_migrate:

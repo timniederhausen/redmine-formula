@@ -26,6 +26,8 @@ redmine_service:
       - file: redmine_service_script
 {% endif %}
     - watch:
+      - file: redmine_config_configuration
+      - cmd: redmine_migrate_db
       - cmd: redmine_plugin_migrate
 {% for name in redmine.plugins.absent %}
       - cmd: redmine_plugin_{{ name }}_migrate
