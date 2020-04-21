@@ -1,6 +1,5 @@
-{%- from 'redmine/map.jinja' import redmine with context -%}
-{%- set redmine_name = 'redmine' -%}
-#! /bin/sh
+{%- set redmine_name = redmine.service -%}
+#!/bin/sh
 
 # REDMINE {{ redmine_name }}
 # Maintainer: @tim

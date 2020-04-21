@@ -1,34 +1,40 @@
-{% from 'redmine/map.jinja' import redmine with context %}
+{% from 'redmine/map.jinja' import instances with context %}
 
-{% if grains.os_family == 'FreeBSD' %}
-redmine_service_script:
+{% for instance in instances %}
+{%  if grains.os_family == 'FreeBSD' %}
+redmine_service_script_{{ loop.index }}:
   file.managed:
-    - name: /usr/local/etc/rc.d/{{ redmine.service }}
+    - name: /usr/local/etc/rc.d/{{ instance.service }}
     - source: salt://redmine/files/freebsd-rc.sh
     - template: jinja
     - mode: 755
-{% elif grains.os_family == 'Debian' %}
+    - context:
+      redmine: {{ instance | yaml }}
+{%  elif grains.os_family == 'Debian' %}
 redmine_service_script:
   file.managed:
-    - name: /etc/systemd/system/{{ redmine.service }}.service
+    - name: /etc/systemd/system/{{ instance.service }}.service
     - source: salt://redmine/files/redmine.service
     - template: jinja
     - mode: 755
-{% endif %}
+    - context:
+      redmine: {{ instance | yaml }}
+{%  endif %}
 
-redmine_service:
+redmine_service_{{ loop.index }}:
   service.running:
-    - name: {{ redmine.service }}
-    - enable: {{ redmine.service_enabled }}
-{% if grains.os_family in ['FreeBSD', 'Debian'] %}
+    - name: {{ instance.service }}
+    - enable: {{ instance.service_enabled }}
+{%  if grains.os_family in ['FreeBSD', 'Debian'] %}
     - require:
-      - cmd: redmine_default_data
-      - file: redmine_service_script
-{% endif %}
+      - cmd: redmine_default_data_{{ loop.index }}
+      - file: redmine_service_script_{{ loop.index }}
+{%  endif %}
     - watch:
-      - file: redmine_config_configuration
-      - cmd: redmine_migrate_db
-      - cmd: redmine_plugin_migrate
-{% for name in redmine.plugins.absent %}
-      - cmd: redmine_plugin_{{ name }}_migrate
+      - file: redmine_config_{{ loop.index }}_configuration
+      - cmd: redmine_migrate_db_{{ loop.index }}
+      - cmd: redmine_plugin_migrate_{{ loop.index }}
+{%  for name in instance.plugins.absent %}
+      - cmd: redmine_{{ loop.index }}_plugin_{{ name }}_migrate
+{%  endfor %}
 {% endfor %}

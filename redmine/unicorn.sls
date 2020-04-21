@@ -1,10 +1,14 @@
-{% from 'redmine/map.jinja' import redmine with context %}
+{% from 'redmine/map.jinja' import redmine, instances with context %}
 
-redmine_unicorn_script:
+{% for instance in instances %}
+redmine_unicorn_script_{{ loop.index }}:
   file.managed:
-    - name: {{ redmine.directory }}/config/unicorn.rb
+    - name: {{ instance.directory }}/config/unicorn.rb
     - source: salt://redmine/files/unicorn.rb
     - template: jinja
-    - user: {{ redmine.user }}
-    - group: {{ redmine.group }}
+    - user: {{ instance.user }}
+    - group: {{ instance.group }}
     - mode: 600
+    - context:
+        redmine: {{ instance | json }}
+{% endfor %}

@@ -1,4 +1,4 @@
-{% from 'redmine/map.jinja' import redmine with context %}
+{% from 'redmine/map.jinja' import redmine, instances with context %}
 
 {% for pkg in redmine.packages %}
 redmine_pkg_{{ pkg }}:
@@ -6,153 +6,157 @@ redmine_pkg_{{ pkg }}:
     - name: {{ pkg }}
 {% endfor %}
 
-redmine_user:
+{%- do salt.log.error(instances) -%}
+
+{% for instance in instances -%}
+{%  set index = loop.index -%}
+redmine_user_{{ index }}:
   user.present:
-    - name: {{ redmine.user }}
+    - name: {{ instance.user }}
 
-redmine_group:
+redmine_group_{{ index }}:
   group.present:
-    - name: {{ redmine.group }}
+    - name: {{ instance.group }}
 
-redmine_directory:
+redmine_directory_{{ index }}:
   file.directory:
-    - name: {{ redmine.directory }}
-    - user: {{ redmine.user }}
-    - group: {{ redmine.group }}
+    - name: {{ instance.directory }}
+    - user: {{ instance.user }}
+    - group: {{ instance.group }}
     - makedirs: true
 
-redmine_checkout:
+redmine_checkout_{{ index }}:
   svn.latest:
-    - name: {{ redmine.svn_url }}
-    - target: {{ redmine.directory }}
-    - rev: {{ redmine.svn_rev }}
+    - name: {{ instance.svn_url }}
+    - target: {{ instance.directory }}
+    - rev: {{ instance.svn_rev }}
     - force: true
-    - user: {{ redmine.user }}
+    - user: {{ instance.user }}
     - trust: true
 
-{% for cfg in ['configuration', 'database'] %}
-redmine_config_{{ cfg }}:
-  file.managed:
-    - name: {{ redmine.directory }}/config/{{ cfg }}.yml
-    - source: salt://redmine/files/config.yml
-    - template: jinja
-    - user: {{ redmine.user }}
-    - group: {{ redmine.group }}
+{%  for cfg in ['configuration', 'database'] %}
+redmine_config_{{ index }}_{{ cfg }}:
+  file.serialize:
+    - name: {{ instance.directory }}/config/{{ cfg }}.yml
+    - formatter: yaml
+    - user: {{ instance.user }}
+    - group: {{ instance.group }}
     - makedirs: true
-    - context:
-      cfg: {{ cfg }}
-{% endfor %}
+    - dataset: {{ instance.config.get(cfg, {}) | yaml }}
+{%  endfor %}
 
-redmine_local_gemfile:
+redmine_local_gemfile_{{ index }}:
   file.managed:
-    - name: {{ redmine.directory }}/Gemfile.local
+    - name: {{ instance.directory }}/Gemfile.local
     - source: salt://redmine/files/Gemfile.local
-    - user: {{ redmine.user }}
-    - group: {{ redmine.group }}
+    - user: {{ instance.user }}
+    - group: {{ instance.group }}
 
-{% for name, plugin in redmine.plugins.present.items() %}
-redmine_plugin_{{ name }}_dir:
+{%  for name, plugin in instance.plugins.present.items() %}
+redmine_plugin_{{ index }}_{{ name }}_dir:
   git.latest:
     - name: {{ plugin.git_repo }}
-    - target: {{ redmine.directory }}/plugins/{{ name }}
-    - user: {{ redmine.user }}
+    - target: {{ instance.directory }}/plugins/{{ name }}
+    - user: {{ instance.user }}
     - rev: master
     - branch: master
     - force_reset: true
     - force_fetch: true
- {% if plugin.install_command is defined %}
-redmine_plugin_install:
+ {%  if plugin.install_command is defined %}
+redmine_plugin_install_{{ index }}_{{ name }}:
   cmd.run:
-    - name: {{ plugin.install_command }} && touch "{{ redmine.directory }}/plugins/{{ name }}/.installed.stamp"
-    - creates: {{ redmine.directory }}/plugins/{{ name }}/.installed.stamp
-    - cwd: {{ redmine.directory }}/plugins/{{ name }}
-    - runas: {{ redmine.user }}
- {% endif %}
-{% endfor %}
+    - name: {{ plugin.install_command }} && touch "{{ instance.directory }}/plugins/{{ name }}/.installed.stamp"
+    - creates: {{ instance.directory }}/plugins/{{ name }}/.installed.stamp
+    - cwd: {{ instance.directory }}/plugins/{{ name }}
+    - runas: {{ instance.user }}
+ {%  endif %}
+{%  endfor %}
 
-redmine_bundle_install:
+redmine_bundle_install_{{ index }}:
   cmd.run:
-    - name: bundle install --path vendor/bundle --without development test rmagick
-    - runas: {{ redmine.user }}
-    - cwd: {{ redmine.directory }}
-    - creates: {{ redmine.directory }}/Gemfile.lock
+    {# needed to bypass the euid/uid check in ruby that leads to $SAFE=1 #}
+    - name: su {{ instance.user }} -c "bundle install --path vendor/bundle --without development test rmagick"
+    - runas: {{ instance.user }}
+    - cwd: {{ instance.directory }}
+    - creates: {{ instance.directory }}/Gemfile.lock
 
-redmine_bundle_update:
+redmine_bundle_update_{{ index }}:
   cmd.run:
-    - name: bundle update
-    - runas: {{ redmine.user }}
-    - cwd: {{ redmine.directory }}
+    - name: su {{ instance.user }} -c "bundle update"
+    - runas: {{ instance.user }}
+    - cwd: {{ instance.directory }}
     - onchanges:
-      - svn: redmine_checkout
-      - file: redmine_local_gemfile
-      - file: redmine_config_database
-{% for name in redmine.plugins.present.keys() %}
-      - git: redmine_plugin_{{ name }}_dir
-{% endfor %}
+      - svn: redmine_checkout_{{ index }}
+      - file: redmine_local_gemfile_{{ index }}
+      - file: redmine_config_{{ index }}_database
+{%  for name in instance.plugins.present.keys() %}
+      - git: redmine_plugin_{{ index }}_{{ name }}_dir
+{%  endfor %}
 
-redmine_web_sh:
+redmine_web_sh_{{ index }}:
   file.managed:
-    - name: {{ redmine.directory }}/bin/web
+    - name: {{ instance.directory }}/bin/web
     - source: salt://redmine/files/web.sh
-    - user: {{ redmine.user }}
-    - group: {{ redmine.group }}
+    - user: {{ instance.user }}
+    - group: {{ instance.group }}
     - mode: 755
 
-redmine_secret_token:
+redmine_secret_token_{{ index }}:
   cmd.run:
-    - name: bundle exec rake generate_secret_token
-    - runas: {{ redmine.user }}
-    - cwd: {{ redmine.directory }}
-    - creates: {{ redmine.directory }}/config/initializers/secret_token.rb
+    - name: su {{ instance.user }} -c "bundle exec rake generate_secret_token"
+    - runas: {{ instance.user }}
+    - cwd: {{ instance.directory }}
+    - creates: {{ instance.directory }}/config/initializers/secret_token.rb
     - env:
       - RAILS_ENV: production
 
-redmine_migrate_db:
+redmine_migrate_db_{{ index }}:
   cmd.run:
-    - name: bundle exec rake db:migrate
-    - runas: {{ redmine.user }}
-    - cwd: {{ redmine.directory }}
+    - name: su {{ instance.user }} -c "bundle exec rake db:migrate"
+    - runas: {{ instance.user }}
+    - cwd: {{ instance.directory }}
     - env:
       - RAILS_ENV: production
     - onchanges:
-      - svn: redmine_checkout
-      - file: redmine_config_database
+      - svn: redmine_checkout_{{ index }}
+      - file: redmine_config_{{ index }}_database
 
-redmine_default_data:
+redmine_default_data_{{ index }}:
   cmd.run:
-    - name: bundle exec rake redmine:load_default_data
-    - runas: {{ redmine.user }}
-    - cwd: {{ redmine.directory }}
+    - name: su {{ instance.user }} -c "bundle exec rake redmine:load_default_data"
+    - runas: {{ instance.user }}
+    - cwd: {{ instance.directory }}
     - env:
       - RAILS_ENV: production
       - REDMINE_LANG: en
     - onchanges:
-      - cmd: redmine_migrate_db
-      - file: redmine_config_database
+      - cmd: redmine_migrate_db_{{ index }}
+      - file: redmine_config_{{ index }}_database
 
-redmine_plugin_migrate:
+redmine_plugin_migrate_{{ index }}:
   cmd.run:
-    - name: bundle exec rake redmine:plugins:migrate RAILS_ENV=production
-    - runas: {{ redmine.user }}
-    - cwd: {{ redmine.directory }}
+    - name: su {{ instance.user }} -c "bundle exec rake redmine:plugins:migrate RAILS_ENV=production"
+    - runas: {{ instance.user }}
+    - cwd: {{ instance.directory }}
     - env:
       - RAILS_ENV: production
     - onchanges:
-      - cmd: redmine_migrate_db
-{% for name in redmine.plugins.present.keys() %}
-      - git: redmine_plugin_{{ name }}_dir
-{% endfor %}
+      - cmd: redmine_migrate_db_{{ index }}
+{%  for name in instance.plugins.present.keys() %}
+      - git: redmine_plugin_{{ index }}_{{ name }}_dir
+{%  endfor %}
 
-{% for name in redmine.plugins.absent %}
-redmine_plugin_{{ name }}_migrate:
+{%  for name in instance.plugins.absent %}
+redmine_plugin_{{ index }}_{{ name }}_migrate:
   cmd.run:
-    - name: bundle exec rake redmine:plugins:migrate NAME={{ name }} VERSION=0
-    - runas: {{ redmine.user }}
-    - cwd: {{ redmine.directory }}
+    - name: su {{ instance.user }} -c "bundle exec rake redmine:plugins:migrate NAME={{ name }} VERSION=0"
+    - runas: {{ instance.user }}
+    - cwd: {{ instance.directory }}
     - env:
       - RAILS_ENV: production
-    - onlyif: 'test -e {{ redmine.directory }}/plugins/{{ name }}'
-redmine_plugin_{{ name }}_dir:
+    - onlyif: 'test -e {{ instance.directory }}/plugins/{{ name }}'
+redmine_plugin_{{ index }}_{{ name }}_dir:
   file.absent:
-    - name: {{ redmine.directory }}/plugins/{{ name }}
+    - name: {{ instance.directory }}/plugins/{{ name }}
+{%  endfor %}
 {% endfor %}

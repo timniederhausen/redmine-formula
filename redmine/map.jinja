@@ -10,3 +10,12 @@
 
 {# merge the actual redmine pillar into the above combined dict #}
 {% set redmine = salt['pillar.get']('redmine', default=defaults, merge=True) %}
+
+{% if redmine.instances %}
+{%  set instances = [] %}
+{%  for instance in redmine.instances %}
+{%   do instances.append(salt.defaults.merge(redmine, instance, in_place=False)) %}
+{%  endfor %}
+{% else %}
+{%  set instances = [redmine] %}
+{% endif %}

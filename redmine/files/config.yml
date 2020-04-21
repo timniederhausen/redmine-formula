@@ -1,2 +1,1 @@
-{%- from 'redmine/map.jinja' import redmine with context -%}
-{{ redmine.config.get(cfg, {}) | yaml(False) }}
+{{ cfg | yaml(False) }}

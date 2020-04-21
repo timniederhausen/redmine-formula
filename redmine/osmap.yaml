@@ -1,10 +1,12 @@
 FreeBSD:
+  bundler: /usr/local/bin/bundle
   service: redmine
   packages:
     - subversion
     - rubygem-bundler
 
 Debian:
+  bundler: /usr/bin/bundle
   service: redmine
   packages:
     - subversion

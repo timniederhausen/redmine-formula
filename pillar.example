@@ -20,3 +20,7 @@ redmine:
         username: redmine
         password: test
         encoding: utf8
+
+  # optional: run multiple redmine instances
+  # all of the above properties can be set per-instance
+  instances: []
