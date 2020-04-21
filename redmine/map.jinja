@@ -1,16 +1,12 @@
 {% import_yaml 'redmine/defaults.yaml' as defaults %}
 {% import_yaml 'redmine/osmap.yaml' as osmap %}
 
-{# get the settings for the os_family grain #}
-{% set osfam = salt['grains.filter_by'](osmap) or {} %}
-
-{# merge the os family/codename specific data over the defaults #}
-{% do defaults.redmine.update(osfam) %}
-
-{# merge the pillar:lookup dict into the defaults/os specific dict #}
-{% set lookup = salt['pillar.get']('redmine:lookup',
-                                   default=defaults.redmine,
-                                   merge=True) %}
+{%- set defaults = salt['grains.filter_by'](defaults,
+    default='redmine',
+    merge=salt['grains.filter_by'](osmap, grain='os_family',
+      merge=salt['pillar.get']('redmine:lookup', default={})
+    )
+) %}
 
 {# merge the actual redmine pillar into the above combined dict #}
-{% set redmine = salt['pillar.get']('redmine', default=lookup, merge=True) %}
+{% set redmine = salt['pillar.get']('redmine', default=defaults, merge=True) %}
